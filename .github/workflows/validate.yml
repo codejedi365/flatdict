@@ -5,6 +5,14 @@ on:
   # Enable workflow as callable from another workflow
   workflow_call:
     inputs:
+      python-compatibility-versions:
+        description: |
+          The lowest minor versions of python that we claim compatibility with.
+          This is used to run a canary test on the lowest version to quickly detect
+          if there are any breaking changes that would affect compatibility.
+        required: false
+        default: '["3.8"]'
+        type: string
       python-versions-linux:
         description: 'Python versions to test on Linux (JSON array)'
         required: true
@@ -67,8 +75,7 @@ permissions: {}
 
 
 env:
-  LOWEST_PYTHON_VERSION: '3.9'
-  COMMON_PYTHON_VERSION: '3.11'
+  COMMON_PYTHON_VERSION: '3.14'
 
 
 jobs:
@@ -152,6 +159,40 @@ jobs:
       new-release-tag: ${{ steps.version.outputs.tag }}
       new-release-is-prerelease: ${{ steps.version.outputs.is_prerelease }}
       distribution-artifacts: ${{ steps.build.outputs.artifacts_name }}
+
+
+  canary-test:
+    name: ${{ format('Py{0} Canary Test', matrix.python-version) }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ inputs.src-files-changed == 'true' || inputs.test-files-changed == 'true' || inputs.ci-files-changed == 'true' }}
+    strategy:
+      matrix:
+        python-version: ${{ fromJson(inputs.python-compatibility-versions) }}
+
+    steps:
+      - name: Setup | Checkout Repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Setup | Download Distribution Artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
+        with:
+          name: ${{ needs.build.outputs.distribution-artifacts }}
+          path: ./dist
+
+      - name: Setup | Docker Setup
+        uses: docker/setup-docker-action@e43656e248c0bd0647d3f5c195d116aacf6fcaf4 # v4.7.0
+
+      - name: Test | Run canary test script
+        run: |
+          docker run \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            python:${{ matrix.python-version }}-slim-bullseye \
+            bash -c 'pip install dist/cj365_flatdict-*.whl && python3 ./tests/eval_old_python.py'
 
 
   test-linux:
