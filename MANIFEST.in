@@ -1,1 +1,4 @@
-include CHANGELOG.md README.rst LICENSE
+# include docs & testing into sdist, ignored for wheel build
+graft docs/
+prune docs/_build/
+graft tests/
