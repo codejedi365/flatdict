@@ -69,7 +69,7 @@ class FlatterDict(MutableMapping[str, Any]):
         | FlatDict
         | FlatterDict
         | None = None,
-        delimiter: str = ":",
+        delimiter: str = ".",
     ):
         """
         Initialize a FlatterDict instance.
