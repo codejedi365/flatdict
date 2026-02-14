@@ -31,27 +31,27 @@ v4.0.3 (2024-08-28)
 🪲 Bug Fixes
 ------------
 
-- update deployment (`PR#3`_)
+- update deployment (`PR#03`_)
 
-- updating workflow (`PR#4`_)
+- updating workflow (`PR#04`_)
 
-- move to new pypi publish (`PR#5`_)
+- move to new pypi publish (`PR#05`_)
 
-- updating configurations (`PR#6`_)
+- updating configurations (`PR#06`_)
 
-- updating project name (`PR#7`_)
+- updating project name (`PR#07`_)
 
-- updating module name (`PR#8`_)
+- updating module name (`PR#08`_)
 
-- final changes for 4.0.3 (`PR#9`_)
+- final changes for 4.0.3 (`PR#09`_)
 
-.. _PR#3: https://github.com/dennishenry/flatdict/pull/3
-.. _PR#4: https://github.com/dennishenry/flatdict/pull/4
-.. _PR#5: https://github.com/dennishenry/flatdict/pull/5
-.. _PR#6: https://github.com/dennishenry/flatdict/pull/6
-.. _PR#7: https://github.com/dennishenry/flatdict/pull/7
-.. _PR#8: https://github.com/dennishenry/flatdict/pull/8
-.. _PR#9: https://github.com/dennishenry/flatdict/pull/9
+.. _PR#03: https://github.com/dennishenry/flatdict/pull/3
+.. _PR#04: https://github.com/dennishenry/flatdict/pull/4
+.. _PR#05: https://github.com/dennishenry/flatdict/pull/5
+.. _PR#06: https://github.com/dennishenry/flatdict/pull/6
+.. _PR#07: https://github.com/dennishenry/flatdict/pull/7
+.. _PR#08: https://github.com/dennishenry/flatdict/pull/8
+.. _PR#09: https://github.com/dennishenry/flatdict/pull/9
 
 
 .. _changelog-v4.0.2:
@@ -203,7 +203,7 @@ v2.0.0 (2018-01-18)
 
 - ADDED ``FlatterDict`` class that performs the list, set, and tuple coercion that was added in v1.20
 
-- REMOVED coercion of lists and tuples from ``FlatDict`` that was added in 1.2.0. Alternative to (`PR#12`_)
+- REMOVED coercion of lists and tuples from ``FlatDict`` that was added in 1.2.0.
 
 - REMOVED ``FlatDict.has_key()`` as it duplicates of ``FlatDict.__contains__``
 
@@ -214,7 +214,6 @@ v2.0.0 (2018-01-18)
 - CHANGED ``FlatDict.set_delimiter`` to raise a ``ValueError`` if a key already exists with the delimiter value in it. (`PR#8`_)
 
 .. _PR#8: https://github.com/gmr/flatdict/pull/8
-.. _PR#12: https://github.com/gmr/flatdict/pull/12
 .. _PR#13: https://github.com/gmr/flatdict/pull/13
 
 
