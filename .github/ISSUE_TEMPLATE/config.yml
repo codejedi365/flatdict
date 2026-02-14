@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Community Support Discussions
+    url: https://github.com/codejedi365/flatdict/discussions/categories/q-a
+    about: Please ask and answer questions here.
+
+  - name: Security Vulnerabilities & Concerns
+    url: https://codejedi365.github.io/flatdict/misc/security_policy.html
+    about: Please report security vulnerabilities.

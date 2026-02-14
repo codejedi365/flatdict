@@ -1,0 +1,58 @@
+name: Documentation
+description: Make a suggestion or report a discrepancy within the documentation
+title: "[docs] "
+labels:
+  - documentation
+  - triage
+assignees:
+  - codejedi365
+type: task
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the cj365-flatdict package repository.
+
+        * Before you create a new issue, please check the [FAQ](https://codejedi365.github.io/flatdict/misc/faq.html)
+          to see if your question is already answered.
+
+        * Check to make sure someone else hasn't already opened a similar [issue](https://github.com/codejedi365/flatdict/issues)
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: |
+        By submitting this issue, you agree to follow the [Code of Conduct](https://codejedi365.github.io/flatdict/misc/code_of_conduct.html)
+        and understand the expectations for behavior in this community.
+      options:
+        - label: I have read and agree to the [Code of Conduct](https://codejedi365.github.io/flatdict/misc/code_of_conduct.html)
+    validations:
+      required: true
+
+  - id: doc-location-info
+    type: textarea
+    attributes:
+      label: Which article is affected or What content is missing?
+      description: |
+        Please link to the article you'd like to see updated or a comment about
+        where the missing content should be located.
+    validations:
+      required: true
+
+  - id: doc-update
+    type: textarea
+    attributes:
+      label: What part(s) of the article would you like to see updated?
+      description: |
+        - Give as much detail as you can to help us understand the change you want to see.
+        - Why should the docs be changed? What use cases does it support?
+        - What is the expected outcome or behavior?
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to improve the **cj365-flatdict**! We will work to respond within
+        the next few business days.

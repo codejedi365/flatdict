@@ -1,0 +1,124 @@
+name: Bug Report
+description: Something isn't working as expected
+title: "[bug] "
+labels:
+  - bug
+  - triage
+assignees:
+  - codejedi365
+type: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the cj365-flatdict package repository.
+
+        * Before you create a new issue, please check the [FAQ](https://codejedi365.github.io/flatdict/misc/faq.html),
+          the [Q&A Discussions](https://github.com/codejedi365/flatdict/discussions/categories/q-a),
+          and existing issues to see if your topic is already addressed.
+
+        * Check to make sure someone else hasn't already opened a similar [issue](https://github.com/codejedi365/flatdict/issues)
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: |
+        By submitting this issue, you agree to follow the [Code of Conduct](https://codejedi365.github.io/flatdict/misc/code_of_conduct.html)
+        and understand the expectations for behavior in this community.
+      options:
+        - label: I have read and agree to the [Code of Conduct](https://codejedi365.github.io/flatdict/misc/code_of_conduct.html)
+    validations:
+      required: true
+
+  - id: description
+    type: textarea
+    attributes:
+      label: High-level Description
+      description: |
+        1. Please provide a high-level description of the issue/problem you are experiencing.
+        2. This should be a short summary of the problem, not a detailed explanation, the
+           following fields will elaborate on the issue.
+        3. Please do not focus on the specifics of the code, or define the solution here,
+           but describe why the output of the program is incorrect or unexpected. You will
+           be able to provide your recommended solution at the end of the form.
+    validations:
+      required: true
+      # minLength: 50
+      # maxLength: 1000
+
+  - id: expected-behavior
+    type: textarea
+    attributes:
+      label: Expected Behavior
+      description: |
+        Please provide a short description of what you expected to happen.
+    validations:
+      required: true
+      # minLength: 10
+
+  - id: actual-behavior
+    type: textarea
+    attributes:
+      label: Actual Behavior
+      description: |
+        - Please provide a short description of what actually happened.
+        - DO NOT include the full stack trace here, that will be
+          included at the end of the form.
+    validations:
+      required: true
+      # minLength: 10
+
+  - type: markdown
+    attributes:
+      value: "### Environment"
+
+  - id: environment-os
+    type: input
+    attributes:
+      label: Operating System
+      description: |
+        Please provide the python version, operating system and version you are using.
+      placeholder: ex. Python 3.11 on Windows 11, Python 3.10 on Debian Bookworm, etc.
+    validations:
+      required: true
+
+  - id: logs
+    type: textarea
+    attributes:
+      label: Execution Log
+      description: |
+        1. Please update the action you were performing <b> element in our template below
+        2. Please insert your workflow input and resulting output between the code fence (```) so we can maintain
+           a clean format when its rendered to html.
+      value: |
+        <details>
+          <summary>
+            <b>  {Action}  </b>
+          </summary>
+
+        ```log
+          <-- INSERT LOG HERE
+        ```
+
+        </details>
+    validations:
+      required: true
+
+  - id: additional-info
+    type: textarea
+    attributes:
+      label: Additional Information, Context, or Recommendations
+      description: |
+        - Please provide any additional information that may be relevant to the issue. This
+          could include links to documentation, related issues, or anything else
+          that may help us understand the problem better.
+        - If you have a recommended solution, please include it here as well.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to improve the **cj365-flatdict**! We will work to respond within
+        the next few business days.
