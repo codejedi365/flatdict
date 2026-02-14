@@ -20,6 +20,7 @@ from typing import (
     MutableMapping,  # deprecate in favor of collections.abc.MutableMapping in Python 3.9+
 )
 from typing import TYPE_CHECKING, cast, overload, Any
+from deprecated.sphinx import deprecated
 
 if TYPE_CHECKING:  # pragma: no cover
     from typing import (
@@ -106,6 +107,10 @@ class FlatDict(MutableMapping[str, Any]):
             self._meta_keys = self._get_meta_keys()
         return self._meta_keys
 
+    @deprecated(
+        reason="Use the 'inflate' method instead, will be removed in a future version",
+        version="$NEW_VERSION",
+    )
     def as_dict(self) -> dict[Any, Any]:
         return self.inflate()
 
