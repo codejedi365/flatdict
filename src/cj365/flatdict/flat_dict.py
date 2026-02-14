@@ -1,371 +1,506 @@
-"""FlatDict is a dict object that allows for single level, delimited
-key/value pair mapping of nested dictionaries.
-
 """
-try:
-    from collections.abc import MutableMapping
-except ImportError:  # pragma: nocover
-    from collections import MutableMapping
+This module contains the implementation of the :class:`FlatDict` class,
+which provides a dictionary-like interface for working with nested dictionaries
+using delimited keys.
+"""
+# +-------------------------------------------------------------------+
+# | Module: cj365.flatdict.flat_dict                                  |
+# | Author: codejedi365, 2026                                         |
+# | * Portions Copyright (c) 2020-2024, Dennis Henry                  |
+# | * Portions Copyright (c) 2013-2020, Gavin M. Roy                  |
+# | Licensed under the BSD-3-Clause License.                          |
+# +-------------------------------------------------------------------+
+
+from __future__ import annotations
+
+from contextlib import suppress
+from copy import deepcopy
+from functools import reduce
+from typing import (
+    MutableMapping,  # deprecate in favor of collections.abc.MutableMapping in Python 3.9+
+)
+from typing import TYPE_CHECKING, cast, overload, Any
+
+if TYPE_CHECKING:  # pragma: no cover
+    from typing import (
+        Iterator,
+        Iterable,
+        ItemsView,
+        KeysView,
+        TypedDict,
+        ValuesView,
+    )
+    from _typeshed import SupportsKeysAndGetItem
+    from typing_extensions import Self
+
+    class FlatDictState(TypedDict):
+        data: dict[Any, Any]
+        delimiter: str
 
 
-NO_DEFAULT = object()
-
-
-class FlatDict(MutableMapping):
-    """:class:`~flatdict2.FlatDict` is a dictionary object that allows for
-    single level, delimited key/value pair mapping of nested dictionaries.
-    The default delimiter value is ``:`` but can be changed in the constructor
-    or by calling :meth:`FlatDict.set_delimiter`.
-
+class FlatDict(MutableMapping[str, Any]):
     """
-    _COERCE = dict
+    A dictionary object that allows for single level, delimited key/value pair
+    mapping of nested dictionaries.
+    """
+    _delimiter: str
+    _flat_dict: dict[str, Any]
+    _inflated_dict: dict[Any, Any] | None
+    _meta_keys: tuple[str, ...] | None
 
-    def __init__(self, value=None, delimiter=':', dict_class=dict):
-        super(FlatDict, self).__init__()
-        self._values = dict_class()
-        self._delimiter = delimiter
-        self.update(value)
-
-    def __contains__(self, key):
-        """Check to see if the key exists, checking for both delimited and
-        not delimited key values.
-
-        :param mixed key: The key to check for
-
+    def __init__(
+        self,
+        value: dict[Any, Any] | FlatDict | None = None,
+        delimiter: str = ":",
+    ):
         """
-        if self._has_delimiter(key):
-            pk, ck = key.split(self._delimiter, 1)
-            return pk in self._values and ck in self._values[pk]
-        return key in self._values
+        Initialize a new FlatDict instance.
 
-    def __delitem__(self, key):
-        """Delete the item for the specified key, automatically dealing with
-        nested children.
+        :param value: The initial data to populate the FlatDict with. Can be a
+                      nested dictionary, another FlatDict, or None.
 
-        :param mixed key: The key to use
-        :raises: KeyError
+        :param delimiter: The delimiter to use for the keys in the flat dictionary.
 
+        :raises ValueError: if the delimiter is an empty string
+
+        ---
+
+        The default delimiter value is a colon (``:``) but can be changed in the constructor
+        or by calling :meth:`FlatDict.set_delimiter`.
+
+        **WARNING**: keys containing the delimiter are not allowed and will raise a
+        :exc:`ValueError` on assignment or when setting the delimiter.
         """
-        if key not in self:
-            raise KeyError
-        if self._has_delimiter(key):
-            pk, ck = key.split(self._delimiter, 1)
-            del self._values[pk][ck]
-            if not self._values[pk]:
-                del self._values[pk]
-        else:
-            del self._values[key]
+        super().__init__()
 
-    def __eq__(self, other):
-        """Check for equality against the other value
+        if not delimiter:
+            msg = "Delimiter cannot be an empty string"
+            raise ValueError(msg)
 
-        :param other: The value to compare
-        :type other: FlatDict
-        :rtype: bool
-        :raises: TypeError
+        data = {}
 
-        """
-        if isinstance(other, dict):
-            return self.as_dict() == other
-        elif not isinstance(other, self.__class__):
-            raise TypeError
-        return self.as_dict() == other.as_dict()
+        if isinstance(value, FlatDict):
+            data = value.inflate()
 
-    def __ne__(self, other):
-        """Check for inequality against the other value
+        elif value is not None:
+            data = cast("dict[Any, Any]", value)
 
-        :param other: The value to compare
-        :type other: dict or FlatDict
-        :rtype: bool
+        if any(delimiter in key for key in data.keys()):
+            data = FlatDict.unflatten(data, delimiter)
 
-        """
-        return not self.__eq__(other)
+        self.__setstate__({"data": data, "delimiter": delimiter})
 
-    def __getitem__(self, key):
-        """Get an item for the specified key, automatically dealing with
-        nested children.
+    @property
+    def delimiter(self) -> str:
+        """The key delimiter used for the flat dictionary."""
+        return self._delimiter
 
-        :param mixed key: The key to use
-        :rtype: mixed
-        :raises: KeyError
+    @delimiter.setter
+    def delimiter(self, value: str) -> None:
+        self.set_delimiter(value)
 
-        """
-        values = self._values
-        key = [key] if isinstance(key, int) else key.split(self._delimiter)
-        for part in key:
-            values = values[part]
-        return values
+    @property
+    def meta_keys(self) -> tuple[str, ...]:
+        """The keys that exist as parent keys to nested dictionaries"""
+        if self._meta_keys is None:
+            self._meta_keys = self._get_meta_keys()
+        return self._meta_keys
 
-    def __iter__(self):
-        """Iterate over the flat dictionary key and values
-
-        :rtype: Iterator
-        :raises: RuntimeError
-
-        """
-        return iter(self.keys())
-
-    def __len__(self):
-        """Return the number of items.
-
-        :rtype: int
-
-        """
-        return len(self.keys())
-
-    def __reduce__(self):
-        """Return state information for pickling
-
-        :rtype: tuple
-
-        """
-        return type(self), (self.as_dict(), self._delimiter)
-
-    def __repr__(self):
-        """Return the string representation of the instance.
-
-        :rtype: str
-
-        """
-        return '<{} id={} {}>"'.format(self.__class__.__name__, id(self),
-                                       str(self))
-
-    def __setitem__(self, key, value):
-        """Assign the value to the key, dynamically building nested
-        FlatDict items where appropriate.
-
-        :param mixed key: The key for the item
-        :param mixed value: The value for the item
-        :raises: TypeError
-
-        """
-        if isinstance(value, self._COERCE) and not isinstance(value, FlatDict):
-            value = self.__class__(value, self._delimiter)
-        if self._has_delimiter(key):
-            pk, ck = key.split(self._delimiter, 1)
-            if pk not in self._values:
-                self._values[pk] = self.__class__({ck: value}, self._delimiter)
-                return
-            elif not isinstance(self._values[pk], FlatDict):
-                raise TypeError(
-                    'Assignment to invalid type for key {}'.format(pk))
-            self._values[pk][ck] = value
-        else:
-            self._values[key] = value
-
-    def __str__(self):
-        """Return the string value of the instance.
-
-        :rtype: str
-
-        """
-        return '{{{}}}'.format(', '.join(
-            ['{!r}: {!r}'.format(k, self[k]) for k in self.keys()]))
-
-    def as_dict(self):
-        """Return the :class:`~flatdict2.FlatDict` as a :class:`dict`
-
-        :rtype: dict
-
-        """
-        out = {}
-        for key in self.keys():
-            if self._has_delimiter(key):
-                pk, ck = key.split(self._delimiter, 1)
-                if self._has_delimiter(ck):
-                    ck = ck.split(self._delimiter, 1)[0]
-                if isinstance(self._values[pk], FlatDict) and pk not in out:
-                    out[pk] = {}
-                if isinstance(self._values[pk][ck], FlatDict):
-                    out[pk][ck] = self._values[pk][ck].as_dict()
-                else:
-                    out[pk][ck] = self._values[pk][ck]
-            else:
-                out[key] = self._values[key]
-        return out
+    def as_dict(self) -> dict[Any, Any]:
+        return self.inflate()
 
     def clear(self):
         """Remove all items from the flat dictionary."""
-        self._values.clear()
+        self._flat_dict.clear()
+        self._meta_keys = None
+        self._inflated_dict = None
 
-    def copy(self):
-        """Return a shallow copy of the flat dictionary.
+    def copy(self) -> FlatDict:
+        """Return a deep copy of the flat dictionary."""
+        return self.__class__(deepcopy(self.inflate()), delimiter=self._delimiter)
 
-        :rtype: flatdict2.FlatDict
-
+    def get(self, key: str, default: Any = None) -> Any:
         """
-        return self.__class__(self.as_dict(), delimiter=self._delimiter)
+        Retrieves the value for a delimited-key if key exists, otherwise returns the default.
 
-    def get(self, key, d=None):
-        """Return the value for key if key is in the flat dictionary, else
-        default. If default is not given, it defaults to ``None``, so that this
-        method never raises :exc:`KeyError`.
+        If default is not given, it defaults to ``None``, so this method never raises :exc:`KeyError`.
 
-        :param mixed key: The key to get
-        :param mixed d: The default value
-        :rtype: mixed
-
+        :param key: The key name (with delimiters if necessary)
+        :param default: The value to return if the key is not found
         """
         try:
             return self.__getitem__(key)
         except KeyError:
-            return d
-
-    def items(self):
-        """Return a copy of the flat dictionary's list of ``(key, value)``
-        pairs.
-
-        .. note:: CPython implementation detail: Keys and values are listed in
-            an arbitrary order which is non-random, varies across Python
-            implementations, and depends on the flat dictionary's history of
-            insertions and deletions.
-
-        :rtype: list
-
-        """
-        return [(k, self.__getitem__(k)) for k in self.keys()]
-
-    def iteritems(self):
-        """Return an iterator over the flat dictionary's (key, value) pairs.
-        See the note for :meth:`flatdict2.FlatDict.items`.
-
-        Using ``iteritems()`` while adding or deleting entries in the flat
-        dictionary may raise :exc:`RuntimeError` or fail to iterate over all
-        entries.
-
-        :rtype: Iterator
-        :raises: RuntimeError
-
-        """
-        for item in self.items():
-            yield item
-
-    def iterkeys(self):
-        """Iterate over the flat dictionary's keys. See the note for
-        :meth:`flatdict2.FlatDict.items`.
-
-        Using ``iterkeys()`` while adding or deleting entries in the flat
-        dictionary may raise :exc:`RuntimeError` or fail to iterate over all
-        entries.
-
-        :rtype: Iterator
-        :raises: RuntimeError
-
-        """
-        for key in self.keys():
-            yield key
-
-    def itervalues(self):
-        """Return an iterator over the flat dictionary's values. See the note
-        :meth:`flatdict2.FlatDict.items`.
-
-        Using ``itervalues()`` while adding or deleting entries in the flat
-        dictionary may raise a :exc:`RuntimeError` or fail to iterate over all
-        entries.
-
-        :rtype: Iterator
-        :raises: RuntimeError
-
-        """
-        for value in self.values():
-            yield value
-
-    def keys(self):
-        """Return a copy of the flat dictionary's list of keys.
-        See the note for :meth:`flatdict2.FlatDict.items`.
-
-        :rtype: list
-
-        """
-        keys = []
-
-        for key, value in self._values.items():
-            if isinstance(value, (FlatDict, dict)):
-                nested = [
-                    self._delimiter.join([str(key), str(k)])
-                    for k in value.keys()]
-                keys += nested if nested else [key]
-            else:
-                keys.append(key)
-
-        return keys
-
-    def pop(self, key, default=NO_DEFAULT):
-        """If key is in the flat dictionary, remove it and return its value,
-        else return default. If default is not given and key is not in the
-        dictionary, :exc:`KeyError` is raised.
-
-        :param mixed key: The key name
-        :param mixed default: The default value
-        :rtype: mixed
-
-        """
-        if key not in self and default != NO_DEFAULT:
             return default
+
+    def inflate(self) -> dict[Any, Any]:
+        """
+        Inflates the flat dictionary into a nested dictionary structure.
+
+        :returns: A nested dictionary representing the inflated structure of the flat dictionary
+        """
+        if self._inflated_dict is None:
+            self._inflated_dict = self.unflatten(self._flat_dict, self.delimiter)
+        return self._inflated_dict
+
+    def items(self) -> ItemsView[str, Any]:
+        """
+        Return a view of the flat dictionary's items (key-value pairs).
+
+        This viewer will automatically reflect any changes to the flat dictionary,
+        including changes to the flat dictionary and any nested dictionaries that
+        would affect the items.
+        """
+        return self._flat_dict.items()
+
+    def keys(self) -> KeysView[str]:
+        """
+        Return a view of the flat dictionary's keys.
+
+        This viewer will automatically reflect any changes to the flat dictionary,
+        including changes to the flat dictionary and any nested dictionaries that
+        would affect the keys.
+        """
+        return self._flat_dict.keys()
+
+    def pop(self, key: str, default: Any = None) -> Any:
+        """
+        Remove the specified key and return the corresponding value.
+        If the key is not found, return the default value.
+
+        :param key: The delimited-key of the value to remove
+        :param default: The value to return if the key is not found
+        :returns: The value for the key if it exists, otherwise the default
+        """
+        if key not in self:
+            return default
+
         value = self[key]
         self.__delitem__(key)
         return value
 
-    def setdefault(self, key, default):
-        """If key is in the flat dictionary, return its value. If not,
-        insert key with a value of default and return default.
-        default defaults to ``None``.
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        """
+        Safely retrieve a delimited-key value, or insert the default value if the key does not exist.
 
-        :param mixed key: The key name
-        :param mixed default: The default value
-        :rtype: mixed
-
+        :param key: The key name (with delimiters if necessary)
+        :param default: The value to set and return if the key is not found
+        :returns: The value for the key if it exists, otherwise the default
         """
         if key not in self:
             self.__setitem__(key, default)
+
         return self.__getitem__(key)
 
-    def set_delimiter(self, delimiter):
-        """Override the default or passed in delimiter with a new value. If
-        the requested delimiter already exists in a key, a :exc:`ValueError`
-        will be raised.
-
-        :param str delimiter: The delimiter to use
-        :raises: ValueError
-
+    def set_delimiter(self, delimiter: str) -> Self:
         """
-        for key in self.keys():
-            if delimiter in key:
-                raise ValueError('Key {!r} collides with delimiter {!r}', key,
-                                 delimiter)
+        Set the key delimiter for the flat dictionary
+
+        :param delimiter: The delimiter to use
+        :raises ValueError: if the delimiter collides with an existing key
+        """
+        # Validates the new delimiter and converts existing cached flat dict
+        new_flat_dict = self.flatten(self.inflate(), delimiter)
+        self.clear()
+        self._flat_dict.update(new_flat_dict)
         self._delimiter = delimiter
-        for key in self._values.keys():
-            if isinstance(self._values[key], FlatDict):
-                self._values[key].set_delimiter(delimiter)
+        return self
 
-    def update(self, other=None, **kwargs):
-        """Update the flat dictionary with the key/value pairs from other,
-        overwriting existing keys.
-
-        ``update()`` accepts either another flat dictionary object or an
-        iterable of key/value pairs (as tuples or other iterables of length
-        two). If keyword arguments are specified, the flat dictionary is then
-        updated with those key/value pairs: ``d.update(red=1, blue=2)``.
-
-        :param iterable other: Iterable of key, value pairs
-        :rtype: None
-
+    @overload
+    def update(self, arg: SupportsKeysAndGetItem[str, Any], /, **kwargs: Any) -> None:
         """
-        [self.__setitem__(k, v) for k, v in dict(other or kwargs).items()]
+        Update the flat dictionary with new key/value pairs.
 
-    def values(self):
-        """Return a copy of the flat dictionary's list of values. See the note
-        for :meth:`flatdict2.FlatDict.items`.
-
-        :rtype: list
-
+        :param arg: A mapping object with string keys and any type of values.
+        :param kwargs: Additional key/value pairs to update the flat dictionary with.
+        :returns: None
         """
-        return [self.__getitem__(k) for k in self.keys()]
+        ...
 
-    def _has_delimiter(self, key):
-        """Checks to see if the key contains the delimiter.
-
-        :rtype: bool
-
+    @overload
+    def update(self, arg: Iterable[tuple[str, Any]], /, **kwargs: Any) -> None:
         """
-        return isinstance(key, str) and self._delimiter in key
+        Update the flat dictionary with new key/value pairs.
+
+        :param arg: An iterable of key/value tuple pairs.
+        :param kwargs: Additional key/value pairs to update the flat dictionary with.
+        :returns: None
+        """
+        ...
+
+    @overload
+    def update(self, /, **kwargs: Any) -> None:
+        """
+        Update the flat dictionary with the key/value pairs defined as kwargs.
+
+        :param kwargs: Key/value pairs to update the flat dictionary with.
+        :returns: None
+        """
+        ...
+
+    def update(self, arg: Any = None, /, **kwargs: Any) -> None:
+        """
+        Update the flat dictionary with the key/value pairs from arg and kwargs.
+
+        :param arg: The argument can be either a mapping or an iterable of key/value pairs.
+        :param kwargs: Additional key/value pairs to update the flat dictionary with.
+        :returns: None
+        """
+        params = {**kwargs}
+        if arg is not None:
+            if hasattr(arg, "keys") and hasattr(arg, "__getitem__"):
+                params.update(
+                    {
+                        k: arg[k]
+                        for k in cast("SupportsKeysAndGetItem[str, Any]", arg).keys()
+                    }
+                )
+            else:
+                params.update({k: v for k, v in arg})
+
+        flattened_params = self.flatten(params, self.delimiter)
+
+        if matching_meta_keys := flattened_params.keys() & set(self.meta_keys):
+            for key in matching_meta_keys:
+                self[key] = flattened_params[key]
+
+        # only handle nested keys, top-level keys will be handled by the standard update
+        differing_parent_keys: set[str] = reduce(
+            lambda acc, key: self._reduce_to_parent_key(acc, key, self.delimiter),
+            set(flattened_params.keys()) - set(self.keys()),
+            set(),
+        )
+
+        while differing_parent_keys:
+            for parent_key in differing_parent_keys:
+                if parent_key in self._flat_dict:
+                    # if the parent key exists but is not a dictionary, must remove the parent key
+                    self._flat_dict.pop(parent_key)
+
+            differing_parent_keys = reduce(
+                lambda acc, key: self._reduce_to_parent_key(acc, key, self.delimiter),
+                differing_parent_keys,
+                set(),
+            )
+
+        new_flat_dict = {**self._flat_dict, **flattened_params}
+        self.clear()
+        self._flat_dict.update(new_flat_dict)
+
+    def values(self) -> ValuesView[Any]:
+        """
+        Return a view of the flat dictionary's values.
+
+        This viewer will automatically reflect any changes to the flat dictionary,
+        including changes to the flat dictionary and any nested dictionaries that
+        would affect the values.
+        """
+        return self._flat_dict.values()
+
+    def __contains__(self, key: object) -> bool:
+        return any((bool(key in self._flat_dict), bool(key in self.meta_keys)))
+
+    def __delitem__(self, key: object) -> None:
+        key_str = str(key)
+
+        if key_str in self._flat_dict:
+            del self._flat_dict[key_str]
+            self._meta_keys = None
+            self._inflated_dict = None
+            return
+
+        if key_str in self.meta_keys:
+            pointer = inflated_dict = self.inflate()
+            key_parts = key_str.split(self.delimiter)
+
+            for k in key_parts[:-1]:
+                pointer = pointer[k]
+
+            del pointer[key_parts[-1]]
+
+            new_flat_dict = self.flatten(inflated_dict, self.delimiter)
+            self.clear()
+            self._flat_dict.update(new_flat_dict)
+            return
+
+        msg = f"Key {key!r} not found in FlatDict"
+        raise KeyError(msg)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, dict):
+            return self.inflate() == other
+
+        if isinstance(other, self.__class__):
+            return all(
+                (self.delimiter == other.delimiter, self._flat_dict == other._flat_dict)
+            )
+
+        msg = f"Comparison to incompatible type: {type(other).__name__!r}"
+        raise TypeError(msg)
+
+    def __ne__(self, other: object) -> bool:
+        return not self.__eq__(other)
+
+    def __getitem__(self, key: object) -> Any:
+        key_str = str(key)
+
+        if key_str in self._flat_dict:
+            return self._flat_dict[key_str]
+
+        if key_str in self.meta_keys:
+            inflated_dict = self.inflate()
+            key_parts = key_str.split(self.delimiter)
+
+            for part in key_parts[:-1]:
+                inflated_dict = inflated_dict[part]
+
+            return inflated_dict[key_parts[-1]]
+
+        msg = f"Key {key!r} not found in FlatDict"
+        raise KeyError(msg)
+
+    def __iter__(self) -> Iterator[str]:
+        return self._flat_dict.__iter__()
+
+    def __len__(self) -> int:
+        return len(self.keys())
+
+    def __getstate__(self) -> FlatDictState:
+        return {"data": self.inflate(), "delimiter": self.delimiter}
+
+    def __setstate__(self, state: FlatDictState) -> None:
+        self._delimiter = state["delimiter"]
+        self._inflated_dict = None
+        self._meta_keys = None
+
+        if not hasattr(self, "_flat_dict"):
+            self._flat_dict = {}
+
+        self._flat_dict.clear()
+        self._flat_dict.update(self.flatten(state["data"], self.delimiter))
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__} id={id(self)} data={str(self)}>"
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        pointer = inflated_dict = self.inflate()
+        key_parts = key.split(self.delimiter)
+
+        for k in key_parts[:-1]:
+            if k not in pointer or not isinstance(pointer[k], dict):
+                pointer[k] = {}
+            pointer = pointer[k]
+
+        pointer[key_parts[-1]] = value
+
+        new_flat_dict = self.flatten(inflated_dict, self.delimiter)
+        self.clear()
+        self._flat_dict.update(new_flat_dict)
+
+    def __str__(self) -> str:
+        return f"{{{str.join(', ', [f'{k!r}: {self[k]!r}' for k in self.keys()])}}}"
+
+    def _get_meta_keys(self) -> tuple[str, ...]:
+        meta_keys: set[str] = set()
+        parent_dict_keys: set[str] = reduce(
+            lambda acc, key: self._reduce_to_parent_key(acc, key, self.delimiter),
+            set(self.keys()),
+            set(),
+        )
+
+        while parent_dict_keys:
+            meta_keys |= parent_dict_keys
+
+            parent_dict_keys = reduce(
+                lambda acc, key: self._reduce_to_parent_key(acc, key, self.delimiter),
+                parent_dict_keys,
+                set(),
+            )
+
+        return tuple(sorted(meta_keys))
+
+    @staticmethod
+    def _reduce_to_parent_key(
+        accumulator: set[str], key: str, delimiter: str
+    ) -> set[str]:
+        parent_key = str.join(delimiter, key.split(delimiter)[:-1])
+        return accumulator | {parent_key} if parent_key else accumulator
+
+    @staticmethod
+    def flatten(value: dict[Any, Any] | FlatDict, delimiter: str) -> dict[str, Any]:
+        """
+        Flattens a nested dictionary into a single level dictionary with delimited keys.
+
+        :param value: The nested dictionary or FlatDict to flatten
+        :param delimiter: The delimiter to use for the keys in the flat dictionary
+        :returns: A flat dictionary with delimited keys representing the nested structure of the input
+
+        :raises ValueError: if the delimiter is an empty string or if any keys in the
+                            input collide with the delimiter
+        """
+        if not delimiter:
+            msg = "Delimiter cannot be an empty string"
+            raise ValueError(msg)
+
+        val = value.inflate() if isinstance(value, FlatDict) else (value or {})
+
+        flat_dict = {}
+        for k, v in val.items():
+            if delimiter in k:
+                msg = f"Key {k!r} collides with the delimiter {delimiter!r}"
+                raise ValueError(msg)
+
+            if not isinstance(v, dict):
+                flat_dict[k] = v
+                continue
+
+            for sub_k, sub_v in FlatDict.flatten(v, delimiter).items():
+                flat_dict[f"{k}{delimiter}{sub_k}"] = sub_v
+
+        return flat_dict
+
+    @staticmethod
+    def unflatten(value: dict[str, Any], delimiter: str) -> dict[Any, Any]:
+        """
+        Inflates a flat dictionary with delimited keys into a nested dictionary.
+
+        :param value: The flat dictionary to unflatten
+        :param delimiter: The delimiter used in the flat dictionary keys
+        :returns: A nested dictionary representing the inflated structure
+
+        :raises ValueError: if the delimiter is an empty string
+        """
+        if not delimiter:
+            msg = "Delimiter cannot be an empty string"
+            raise ValueError(msg)
+
+        inflated_dict: dict[Any, Any] = {}
+
+        def convert_type(val: str) -> int | float | str:
+            with suppress(ValueError):
+                return int(val)
+
+            with suppress(ValueError):
+                return float(val)
+
+            return val
+
+        for k, v in value.items():
+            current_key_str = k
+            pointer = inflated_dict
+
+            # Keep splitting the key until there are no more delimiters, building
+            # out the nested dict structure as we go
+            while len(key_parts := current_key_str.split(delimiter, maxsplit=1)) > 1:
+                next_key = convert_type(key_parts[0])
+
+                if next_key not in pointer:
+                    pointer[next_key] = {}
+
+                pointer = pointer[next_key]
+                current_key_str = key_parts[-1]
+
+            # No more delimiters in key, now we can assign the value to the final key
+            pointer[convert_type(current_key_str)] = v
+
+        return inflated_dict
