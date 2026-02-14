@@ -1,0 +1,17 @@
+---
+
+build:
+    - MANIFEST.in
+    - scripts/build.sh
+    - scripts/utils.sh
+    - scripts/envsubst_version.py
+docs:
+    - docs/**
+    - README.rst
+    - CONTRIBUTING.rst
+src:
+    - src/cj365/**
+    - pyproject.toml
+tests:
+    - tests/fixtures/**
+    - tests/*.py
