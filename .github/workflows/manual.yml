@@ -44,13 +44,18 @@ on:
         type: boolean
         required: true
         default: true
+      python3-8:
+        description: 'Test Python 3.8?'
+        type: boolean
+        required: true
+        default: true
 
 
 # default token permissions = none
 permissions: {}
 
 env:
-  COMMON_PYTHON_VERSION: '3.11'
+  COMMON_PYTHON_VERSION: '3.14'
 
 jobs:
 
@@ -91,14 +96,19 @@ jobs:
                 if str(os.getenv("INPUT_WINDOWS", False)).lower() == str(True).lower()
                 else []
             )
+            compatibility_versions = list(filter(None, [
+                "3.8" if str(os.getenv("INPUT_PY3_8", False)).lower() == str(True).lower() else None,
+            ]))
 
             print(f"PYTHON_VERSIONS_LINUX={json.dumps(linux_versions)}")
             print(f"PYTHON_VERSIONS_WINDOWS={json.dumps(windows_versions)}")
+            print(f"PYTHON_COMPATIBILITY_VERSIONS={json.dumps(compatibility_versions)}")
 
 
       - name: Evaluate | Generate Test Matrix
         id: test-matrix
         env:
+          INPUT_PY3_8: ${{ inputs.python3-8 }}
           INPUT_PY3_9: ${{ inputs.python3-9 }}
           INPUT_PY3_10: ${{ inputs.python3-10 }}
           INPUT_PY3_11: ${{ inputs.python3-11 }}
@@ -116,6 +126,7 @@ jobs:
           printf '%s\n' "$vars" >> $GITHUB_OUTPUT
 
     outputs:
+      python-compatibility-versions: ${{ steps.test-matrix.outputs.PYTHON_COMPATIBILITY_VERSIONS }}
       python-versions-linux: ${{ steps.test-matrix.outputs.PYTHON_VERSIONS_LINUX }}
       python-versions-windows: ${{ steps.test-matrix.outputs.PYTHON_VERSIONS_WINDOWS }}
 
@@ -124,6 +135,7 @@ jobs:
     needs: eval-input
     uses: ./.github/workflows/validate.yml
     with:
+      python-compatibility-versions: ${{ needs.eval-input.outputs.python-compatibility-versions }}
       python-versions-linux: ${{ needs.eval-input.outputs.python-versions-linux }}
       python-versions-windows: ${{ needs.eval-input.outputs.python-versions-windows }}
       # There is no way to check for file changes on a manual workflow so
