@@ -51,7 +51,7 @@ class FlatDict(MutableMapping[str, Any]):
     def __init__(
         self,
         value: dict[Any, Any] | FlatDict | None = None,
-        delimiter: str = ":",
+        delimiter: str = ".",
     ):
         """
         Initialize a new FlatDict instance.
@@ -65,7 +65,7 @@ class FlatDict(MutableMapping[str, Any]):
 
         ---
 
-        The default delimiter value is a colon (``:``) but can be changed in the constructor
+        The default delimiter value is a period (``.``) but can be changed in the constructor
         or by calling :meth:`FlatDict.set_delimiter`.
 
         **WARNING**: keys containing the delimiter are not allowed and will raise a
