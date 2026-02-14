@@ -1,305 +1,603 @@
-"""
-Unittests for flatdict2.FlatDict
+from __future__ import annotations
 
-"""
-import pickle
-import random
-import unittest
-import uuid
+from typing import TYPE_CHECKING, NamedTuple
 
-import flatdict2
+import pytest
+from pytest_dependency import depends
+
+from cj365.flatdict import FlatDict
+
+if TYPE_CHECKING:  # pragma: no cover
+    from typing import Any
 
 
-class FlatDictTests(unittest.TestCase):
+class Point(NamedTuple):
+    x: int
+    y: int
 
-    TEST_CLASS = flatdict2.FlatDict
 
-    FLAT_EXPECTATION = {
-        'foo:bar:baz': 0,
-        'foo:bar:qux': 1,
-        'foo:bar:corge': 2,
-        'foo:grault:baz': 3,
-        'foo:grault:qux': 4,
-        'foo:grault:corge': 5,
-        'foo:list': ['F', 'O', 'O'],
-        'foo:empty_list': [],
-        'foo:set': {10, 20, 30},
-        'foo:empty_set': set(),
-        'foo:tuple': ('F', 0, 0),
-        'foo:empty_tuple': (),
-        'garply:foo': 0,
-        'garply:bar': 1,
-        'garply:baz': 2,
-        'garply:qux:corge': 3,
-        'fred': 4,
-        'xyzzy': 'plugh',
-        'thud': 5,
-        'waldo:fred': 6,
-        'waldo:wanda': 7
-    }
+def test_flatdict_init_from_NamedTuple(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_getitem.__name__], scope="module")
 
-    KEYS = [
-        'foo:bar:baz', 'foo:bar:qux', 'foo:bar:corge', 'foo:grault:baz',
-        'foo:grault:qux', 'foo:grault:corge', 'foo:list', 'foo:empty_list',
-        'foo:set', 'foo:empty_set', 'foo:tuple', 'foo:empty_tuple',
-        'garply:foo', 'garply:bar', 'garply:baz', 'garply:qux:corge', 'fred',
-        'xyzzy', 'thud', 'waldo:fred', 'waldo:wanda'
-    ]
+    point = Point(x=1, y=2)
 
-    VALUES = {
-        'foo': {
-            'bar': {
-                'baz': 0,
-                'qux': 1,
-                'corge': 2
-            },
-            'grault': {
-                'baz': 3,
-                'qux': 4,
-                'corge': 5
-            },
-            'list': ['F', 'O', 'O'],
-            'empty_list': [],
-            'set': {10, 20, 30},
-            'empty_set': set(),
-            'tuple': ('F', 0, 0),
-            'empty_tuple': ()
+    # Test that initializing a FlatDict from a NamedTuple correctly
+    # converts it to a dictionary
+    flat_dict = FlatDict(point, delimiter=".")
+    assert point.x == flat_dict["x"]
+    assert point.y == flat_dict["y"]
 
-        },
-        'garply': {
-            'foo': 0,
-            'bar': 1,
-            'baz': 2,
-            'qux': {
-                'corge': 3
-            }
-        },
-        'fred': 4,
-        'xyzzy': 'plugh',
-        'thud': 5,
-        'waldo:fred': 6,
-        'waldo:wanda': 7
-    }
 
-    AS_DICT = {
-        'foo': {
-            'bar': {
-                'baz': 0,
-                'qux': 1,
-                'corge': 2
-            },
-            'grault': {
-                'baz': 3,
-                'qux': 4,
-                'corge': 5
-            },
-            'list': ['F', 'O', 'O'],
-            'empty_list': [],
-            'set': {10, 20, 30},
-            'empty_set': set(),
-            'tuple': ('F', 0, 0),
-            'empty_tuple': (),
-        },
-        'garply': {
-            'foo': 0,
-            'bar': 1,
-            'baz': 2,
-            'qux': {
-                'corge': 3
-            }
-        },
-        'fred': 4,
-        'xyzzy': 'plugh',
-        'thud': 5,
-        'waldo': {
-            'fred': 6,
-            'wanda': 7
-        }
-    }
+def test_flatdict_init_from_flatdict(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_getitem.__name__], scope="module")
 
-    def setUp(self):
-        self.value = self.TEST_CLASS(self.VALUES, ':')
+    data = {"a": 1, "b": 2}
+    flat_dict = FlatDict(data)
+    new_flat_dict = FlatDict(flat_dict)
+    assert data["a"] == new_flat_dict["a"]
+    assert data["b"] == new_flat_dict["b"]
 
-    def test_contains_true(self):
-        self.assertTrue(all(k in self.value for k in self.KEYS))
 
-    def test_contains_false(self):
-        self.assertNotIn(str(uuid.uuid4()), self.value['foo'])
+def test_flatdict_init_from_flattened_dict():
+    assert FlatDict({"a": 1, "b.c": 2}, delimiter=".")
 
-    def test_contains_nested_true(self):
-        self.assertIn('bar', self.value['foo'])
 
-    def test_contains_nested_false(self):
-        self.assertIn('bar', self.value['garply'])
+def test_flatdict_init_fails_w_empty_delimiter():
+    with pytest.raises(ValueError, match="Delimiter cannot be an empty string"):
+        assert FlatDict({"a": 1, "b": {"c": 2}}, delimiter="")
 
-    def test_raises_key_error(self):
-        self.assertRaises(KeyError, self.value.__getitem__, 'grault')
 
-    def test_del_item(self):
-        offset = random.randint(0, len(self.KEYS) - 1)
-        del self.value[self.KEYS[offset]]
-        self.assertNotIn(self.KEYS[offset], self.value)
+def test_flatdict_flatten_delimiter_collision():
+    with pytest.raises(ValueError, match="Key 'b.c' collides with the delimiter '.'"):
+        assert FlatDict.flatten({"a": 1, "b.c": 2}, delimiter=".")
 
-    def test_del_top(self):
-        del self.value['foo']
-        for key in [k for k in self.KEYS if k.startswith('foo:')]:
-            self.assertNotIn(key, self.value)
 
-    def test_as_dict(self):
-        self.assertDictEqual(self.value.as_dict(), self.AS_DICT)
+def test_flatdict_unflatten_fails_w_empty_delimiter():
+    with pytest.raises(ValueError, match="Delimiter cannot be an empty string"):
+        assert FlatDict.unflatten({"a": 1, "b.c": 2}, delimiter="")
 
-    def test_cast_to_dict(self):
-        self.assertDictEqual(dict(self.value), self.FLAT_EXPECTATION)
 
-    def test_casting_items_to_dict(self):
-        self.assertEqual(dict(self.value.items()), self.FLAT_EXPECTATION)
+def test_flatdict_clear(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(
+            request,
+            [test_flatdict_dunder_equality.__name__, test_flatdict_dunder_len.__name__],
+            scope="module",
+        )
 
-    def test_missing_key_on_del(self):
-        with self.assertRaises(KeyError):
-            del self.value[str(uuid.uuid4())]
+    flat_dict = FlatDict({"a": 1, "b": 2})
 
-    def test_missing_key_on_get(self):
-        with self.assertRaises(KeyError):
-            self.assertIsNotNone(self.value[str(uuid.uuid4())])
+    # Test that clearing a FlatDict removes all items
+    # and results in an empty FlatDict
+    flat_dict.clear()
+    assert len(flat_dict) == 0
+    assert flat_dict == {}
 
-    def test_del_all_for_prefix(self):
-        for key in [k for k in self.KEYS if k.startswith('garply')]:
-            del self.value[key]
-        self.assertNotIn('garply', self.value)
 
-    def test_iter_keys(self):
-        self.assertListEqual(sorted(self.KEYS),
-                             sorted(k for k in iter(self.value)))
+def test_flatdict_clear_nested(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(
+            request,
+            [test_flatdict_dunder_equality.__name__, test_flatdict_dunder_len.__name__],
+            scope="module",
+        )
 
-    def test_repr_value(self):
-        value = self.TEST_CLASS({'foo': 'bar', 'baz': {'qux': 'corgie'}})
-        self.assertIn(str(value), repr(value))
-        self.assertEqual(
-            repr(value)[0:len(self.TEST_CLASS.__name__) + 1],
-            '<{}'.format(self.TEST_CLASS.__name__))
+    flat_dict = FlatDict({"a": {"b": 1}, "c": 2})
 
-    def test_str_value(self):
-        val = self.TEST_CLASS({'foo': 1, 'baz': {'qux': 'corgie'}})
-        self.assertIn("'foo': 1", str(val))
-        self.assertIn("'baz:qux': 'corgie'", str(val))
+    # Test that clearing a FlatDict with nested dictionaries
+    # removes all items and results in an empty FlatDict
+    flat_dict.clear()
+    assert len(flat_dict) == 0
+    assert flat_dict == {}
 
-    def test_incorrect_assignment_raises(self):
-        value = self.TEST_CLASS({'foo': ['bar'], 'qux': 1})
-        with self.assertRaises(TypeError):
-            value['foo:bar'] = 'baz'
-        with self.assertRaises(TypeError):
-            value['qux:baz'] = 'corgie'
 
-    def test_clear(self):
-        self.value.clear()
-        self.assertDictEqual(self.value.as_dict(), {})
+def test_flatdict_copy(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_equality.__name__], scope="module")
 
-    def test_get(self):
-        self.assertEqual(self.value.get('foo:bar:baz'), 0)
+    flat_dict = FlatDict({"a": 1, "b": {"c": 2}})
 
-    def test_get_none_for_missing_key(self):
-        self.assertIsNone(self.value.get(str(uuid.uuid4())))
+    # Test that copying a FlatDict creates a new FlatDict
+    # with the same content but different instance (ie. a deep copy)
+    flat_dict_copy = flat_dict.copy()
 
-    def test_copy(self):
-        copied = self.value.copy()
-        self.assertNotEqual(id(self.value), id(copied))
-        self.assertDictEqual(self.value.as_dict(), copied.as_dict())
+    # Evaluate (Expected -> Actual)
+    assert flat_dict_copy == flat_dict
+    assert flat_dict_copy is not flat_dict
 
-    def test_eq(self):
-        self.assertEqual(self.value, self.value.copy())
 
-    def test_eq_dict(self):
-        self.assertEqual(self.value, self.value.as_dict())
+def test_flatdict_copy_nested(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(
+            request,
+            [
+                test_flatdict_dunder_equality.__name__,
+                test_flatdict_dunder_getitem.__name__,
+            ],
+            scope="module",
+        )
 
-    def test_not_eq(self):
-        value = self.TEST_CLASS({'foo': ['bar']})
-        self.assertFalse(self.value == value)
+    flat_dict = FlatDict({"a": {"b": {"c": [2]}}})
 
-    def test_ne(self):
-        value = self.TEST_CLASS({'foo': ['bar']})
-        self.assertTrue(self.value != value)
+    # Test that copying a FlatDict with nested dictionaries
+    # creates a new FlatDict with the same content but different
+    # nested dictionary instances (ie. a deep copy)
+    flat_dict_copy = flat_dict.copy()
 
-    def test_eq_value_error(self):
-        with self.assertRaises(TypeError):
-            self.assertTrue(self.value == 123)
+    # Evaluate (Expected -> Actual)
+    assert flat_dict == flat_dict_copy
+    assert flat_dict is not flat_dict_copy
+    assert flat_dict["a"] == flat_dict_copy["a"]
+    assert flat_dict["a"] is not flat_dict_copy["a"]
+    assert flat_dict["a"]["b"] == flat_dict_copy["a"]["b"]
+    assert flat_dict["a"]["b"] is not flat_dict_copy["a"]["b"]
+    assert flat_dict["a"]["b"]["c"] == flat_dict_copy["a"]["b"]["c"]
+    assert flat_dict["a"]["b"]["c"] is not flat_dict_copy["a"]["b"]["c"]
 
-    def test_iter_items(self):
-        items = [(k, v) for k, v in self.value.iteritems()]
-        self.assertListEqual(self.value.items(), items)
 
-    def test_iterkeys(self):
-        keys = sorted(self.value.iterkeys())
-        self.assertListEqual(keys, sorted(self.KEYS))
+def test_flatdict_copy_empty(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(
+            request,
+            [test_flatdict_dunder_equality.__name__, test_flatdict_dunder_len.__name__],
+            scope="module",
+        )
 
-    def test_itervalues(self):
-        values = list(self.value.itervalues())
-        self.assertListEqual(values, self.value.values())
+    flat_dict = FlatDict()
 
-    def test_pop(self):
-        self.assertEqual(1, self.value.pop('foo:bar:qux'))
-        self.assertNotIn('foo:bar:qux', self.value)
+    # Test that copying an empty FlatDict returns an empty FlatDict
+    flat_dict_copy = flat_dict.copy()
+    assert flat_dict == flat_dict_copy
+    assert flat_dict is not flat_dict_copy
+    assert 0 == len(flat_dict_copy)
 
-    def test_pop_top(self):
-        expectation = self.value.__class__(self.VALUES['foo'])
-        self.assertEqual(expectation, self.value.pop('foo'))
-        self.assertNotIn('foo', self.value)
 
-    def test_pop_default(self):
-        default = str(uuid.uuid4())
-        self.assertEqual(self.value.pop(str(uuid.uuid4()), default), default)
+def test_flatdict_get():
+    flat_dict = FlatDict({"a": 1, "b": {"c": 2}}, delimiter=".")
 
-    def test_pop_no_default(self):
-        with self.assertRaises(KeyError):
-            self.value.pop(str(uuid.uuid4()))
+    # Test that get returns the correct values for existing keys
+    assert flat_dict.get("a") == 1
+    assert flat_dict.get("b") == {"c": 2}
+    assert flat_dict.get("b.c") == 2
 
-    def test_set_default(self):
-        value = self.TEST_CLASS()
-        value.setdefault('foo:bar:qux', 9999)
-        self.assertEqual(value['foo:bar:qux'], 9999)
+    # Test that get returns None for non-existent keys
+    assert flat_dict.get("d") is None
+    assert flat_dict.get("d", "default") == "default"
 
-    def test_set_default_already_set(self):
-        self.value.setdefault('foo:bar:qux', 9999)
-        self.assertEqual(self.value['foo:bar:qux'], 1)
 
-    def test_set_default_already_set_false_or_none(self):
-        value = self.TEST_CLASS({'foo': False})
-        value.setdefault('foo', None)
-        self.assertEqual(value['foo'], False)
+def test_flatdict_inflate():
+    expected = {"a": 1, "b": {"c": [2, 3]}}
+    flat_dict = FlatDict(expected, delimiter=".")
 
-    def test_set_delimiter(self):
-        self.value.set_delimiter('-')
-        self.assertListEqual(
-            sorted(k.replace(':', '-') for k in self.KEYS),
-            sorted(self.value.keys()))
-        self.assertListEqual(
-            sorted(str(self.value[k.replace(':', '-')]) for k in self.KEYS),
-            sorted(str(v) for v in self.value.values()))
+    # Test that inflating the FlatDict returns a dictionary equal to the original nested structure
+    inflated = flat_dict.inflate()
 
-    def test_update(self):
-        expectation = self.TEST_CLASS(self.value.as_dict())
-        expectation['foo:bar:baz'] = 4
-        expectation['foo:bar:qux'] = 5
-        expectation['foo:bar:corgie'] = 6
-        expectation['foo:bar:waldo'] = 7
-        self.value.update({
-            'foo:bar:baz': 4,
-            'foo:bar:qux': 5,
-            'foo:bar:corgie': 6,
-            'foo:bar:waldo': 7
-        })
-        self.assertEqual(self.value, expectation)
+    # Evaluate (Expected -> Actual)
+    assert expected == inflated
+    assert expected is not inflated
+    assert expected["b"] == inflated["b"]
+    assert expected["b"] is not inflated["b"]
+    assert expected["b"]["c"] == inflated["b"]["c"]
+    assert expected["b"]["c"] is inflated["b"]["c"]
 
-    def test_set_delimiter_collision(self):
-        value = self.TEST_CLASS({'foo_bar': {'qux': 1}})
-        with self.assertRaises(ValueError):
-            value.set_delimiter('_')
 
-    def test_pickling(self):
-        pickled = pickle.dumps(self.value)
-        self.assertEqual(pickle.loads(pickled), self.value)
+def test_flatdict_inflate_empty():
+    expected = {}
+    flat_dict = FlatDict()
 
-    def test_empty_dict_as_value(self):
-        expectation = {'foo': {'bar': {}}}
-        flat = self.TEST_CLASS(expectation)
-        value = flat.as_dict()
-        self.assertDictEqual(value, expectation)
+    # Test that inflating an empty FlatDict returns an empty dictionary
+    inflated = flat_dict.inflate()
+    assert expected == inflated
+    assert inflated is not expected
+
+
+def test_flatdict_items():
+    flat_dict = FlatDict({"a": 1, "b": {"c": 2}}, delimiter=".")
+
+    # Test that the items method returns the correct set of key-value pairs
+    items = flat_dict.items()
+    assert set(items) == {("a", 1), ("b.c", 2)}
+
+
+def test_flatdict_keys():
+    flat_dict = FlatDict({"a": 1, "b": {"c": 2}}, delimiter=".")
+
+    # Test that the keys method returns the correct set of keys
+    keys = flat_dict.keys()
+    assert set(keys) == {"a", "b.c"}
+
+
+def test_flatdict_pop(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(
+            request,
+            [
+                test_flatdict_dunder_equality.__name__,
+                test_flatdict_dunder_contains.__name__,
+            ],
+            scope="module",
+        )
+
+    flat_dict = FlatDict({"a": 1, "b": {"c": 2, "d": 3}}, delimiter=".")
+
+    # Test popping a nested key
+    value = flat_dict.pop("b.d")
+    assert value == 3
+    assert "b.d" not in flat_dict
+
+    # Test popping a top-level key of a nested dictionary removing
+    # the entire dictionary
+    value = flat_dict.pop("b")
+    assert value == {"c": 2}
+    assert "b.c" not in flat_dict
+
+    # Test popping a non-existent key without a default value
+    value = flat_dict.pop("b")
+    assert value is None
+
+    # Test popping a non-existent key with a default value
+    value = flat_dict.pop("b", "default")
+    assert value == "default"
+    assert "b" not in flat_dict
+
+    # Test popping a top-level key
+    value = flat_dict.pop("a")
+    assert value == 1
+    assert "a" not in flat_dict
+
+    # Test that popping the last key results in an empty FlatDict
+    assert flat_dict == {}
+
+
+def test_flatdict_setdefault(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_getitem.__name__], scope="module")
+
+    values = [1, 2]
+    flat_dict = FlatDict({"a": values[0], "b": {"c": values[1]}}, delimiter=".")
+
+    # Test that setdefault returns the existing value for an existing key
+    value = flat_dict.setdefault("a", "default")
+    assert value == values[0]
+    assert flat_dict["a"] == values[0]
+
+    # Test that setdefault returns the default value for a non-existent key and sets it
+    value = flat_dict.setdefault("d", "default")
+    assert value == "default"
+    assert flat_dict["d"] == "default"
+
+    # Test that setdefault does not overwrite an existing nested key
+    value = flat_dict.setdefault("b.c", "default")
+    assert value == values[1]
+    assert flat_dict["b.c"] == values[1]
+
+
+def test_flatdict_set_delimiter(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_getitem.__name__], scope="module")
+
+    data: dict[str, Any] = {"a": 1, "b": {"c": 2}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that changing the delimiter updates the internal structure
+    # and allows access with the new delimiter
+    flat_dict.delimiter = "/"
+    assert flat_dict["a"] == data["a"]
+    assert flat_dict["b"] == data["b"]
+    assert flat_dict["b/c"] == data["b"]["c"]
+
+    with pytest.raises(KeyError, match="Key 'b.c' not found in FlatDict"):
+        assert flat_dict["b.c"]
+
+    with pytest.raises(ValueError, match="Delimiter cannot be an empty string"):
+        flat_dict.set_delimiter("")
+
+
+def test_flatdict_update_merge(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_getitem.__name__], scope="module")
+
+    data = {"a": 1, "b": {"c": [2]}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that updating the FlatDict with a new dictionary correctly updates the content
+    flat_dict.update({"b": {"d": 3}, "e": 4})
+    assert flat_dict["a"] == 1
+    assert flat_dict["b"] == {"c": [2], "d": 3}
+    assert flat_dict["b.c"] == [2]
+    assert flat_dict["b.d"] == 3
+    assert flat_dict["e"] == 4
+
+    # Test updating the FlatDict with kwargs
+    flat_dict.update(f=5, g={"h": 6})
+    assert flat_dict["f"] == 5
+    assert flat_dict["g"] == {"h": 6}
+    assert flat_dict["g.h"] == 6
+
+    # Test updating the FlatDict with iterable of key-value pairs
+    flat_dict.update([("i", 7), ("j", {"k": 8})])
+    assert flat_dict["i"] == 7
+    assert flat_dict["j.k"] == 8
+
+
+def test_flatdict_update_overwrite(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_getitem.__name__], scope="module")
+
+    data = {"a": 1, "b": {"c": [2]}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that updating the FlatDict with a new dictionary correctly overwrites existing keys
+    flat_dict.update({"a": 3, "b": {"c": [4]}})
+    assert flat_dict["a"] == 3
+    assert flat_dict["b"] == {"c": [4]}
+    assert flat_dict["b.c"] == [4]
+
+
+def test_flatdict_update_restructure(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_getitem.__name__], scope="module")
+
+    data = {"a": 1, "b": {"c": [2]}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that updating the FlatDict with a new dictionary correctly restructures the content
+    flat_dict.update({"b": 3})
+    assert flat_dict["a"] == 1
+    assert flat_dict["b"] == 3
+    with pytest.raises(KeyError):
+        assert flat_dict["b.c"]
+
+    # Test that updating the FlatDict with a new dictionary correctly restructures the content again
+    flat_dict.update({"b": {"d": 4}})
+    assert flat_dict["a"] == 1
+    assert flat_dict["b"] == {"d": 4}
+    assert flat_dict["b.d"] == 4
+
+
+def test_flatdict_update_empty(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_getitem.__name__], scope="module")
+
+    data = {"a": 1, "b": {"c": [2]}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that updating the FlatDict with an empty dictionary does not change the content
+    flat_dict.update({})
+    assert flat_dict["a"] == 1
+    assert flat_dict["b"] == {"c": [2]}
+    assert flat_dict["b.c"] == [2]
+
+
+@pytest.mark.order("third")
+@pytest.mark.dependency
+def test_flatdict_values(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_setitem.__name__], scope="module")
+
+    initial_values = [1, 2]
+    data = {"a": initial_values[0], "b": {"c": initial_values[1]}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that the values method returns the correct set of values
+    # corresponding to the flattened keys
+    values = flat_dict.values()
+    actual_values = list(values)
+    assert initial_values == actual_values
+
+    # Test use of ValuesViewer when the FlatDict is modified
+    # after calling values()
+    flat_dict["d"] = 3  # requires __setitem__
+    actual_values = list(values)
+    expected = [*initial_values, 3]
+    assert expected == actual_values
+
+
+@pytest.mark.order("first")
+@pytest.mark.dependency
+def test_flatdict_dunder_contains():
+    data = {"a": 1, "b": {"c": 2}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that the __contains__ method correctly identifies existing keys
+    assert "a" in flat_dict
+    assert "b.c" in flat_dict
+
+    # Test that the __contains__ method correctly identifies non-existent keys
+    assert "d" not in flat_dict
+    assert "b.d" not in flat_dict
+    assert "a.c" not in flat_dict
+
+    # Test that the __contains__ method correctly identifies meta keys
+    # substrings of existing keys (higher level dictionary keys)
+    assert "b" in flat_dict
+
+
+def test_flatdict_dunder_delitem(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_contains.__name__], scope="module")
+
+    data = {"a": 1, "b": {"c": {"d": [2]}}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that the __delitem__ method correctly deletes existing keys
+    del flat_dict["b.c"]
+    assert "b.c.d" not in flat_dict
+    assert "b.c" not in flat_dict
+
+    # Test that the __delitem__ method raises KeyError for non-existent keys
+    with pytest.raises(KeyError):
+        del flat_dict["e"]
+
+    with pytest.raises(KeyError):
+        del flat_dict["b.e"]
+
+    with pytest.raises(KeyError):
+        del flat_dict["a.c"]
+
+
+@pytest.mark.order("first")
+@pytest.mark.dependency
+def test_flatdict_dunder_equality():
+    data = {"a": 1, "b": {"c": 2}}
+    other_data = {"a": 1, "b": {"c": 3}}
+    flat_dict1 = FlatDict(data, delimiter=".")
+    flat_dict2 = FlatDict(data, delimiter=".")
+    flat_dict3 = FlatDict(other_data, delimiter=".")
+    flat_dict4 = FlatDict(data, delimiter="/")
+
+    # Test that two FlatDict instances with the same content are equal
+    assert flat_dict1 == flat_dict2
+    assert flat_dict1 is not flat_dict2
+
+    # Test that a FlatDict instance is equal to a regular dict with the same content
+    assert flat_dict1 == data
+
+    # Test that two FlatDict instances with different content are not equal
+    assert bool(flat_dict1 == flat_dict3) is False
+    assert flat_dict1 != flat_dict3
+
+    # Test that a FlatDict instance is not equal to a regular dict with different content
+    assert bool(flat_dict1 == other_data) is False
+    assert flat_dict1 != other_data
+
+    # Test that two FlatDict instances with the same content but different delimiters are not equal
+    assert bool(flat_dict1 == flat_dict4) is False
+    assert flat_dict1 != flat_dict4
+
+    # Test that a comparison with a non-dict type throws a TypeError
+    with pytest.raises(TypeError):
+        assert flat_dict1 == 1
+
+
+@pytest.mark.order("first")
+@pytest.mark.dependency
+def test_flatdict_dunder_getitem():
+    data = {"a": 1, "b": {"c": {"d": [2]}}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that the __getitem__ method correctly retrieves existing keys
+    assert data["a"] == flat_dict["a"]
+    assert data["b"]["c"] == flat_dict["b.c"]
+    assert data["b"]["c"]["d"] == flat_dict["b.c.d"]
+
+    # Test that the __getitem__ method raises KeyError for non-existent keys
+    with pytest.raises(KeyError):
+        flat_dict["e"]
+
+    with pytest.raises(KeyError):
+        flat_dict["b.e"]
+
+    with pytest.raises(KeyError):
+        flat_dict["a.c"]
+
+
+def test_flatdict_dunder_iter():
+    data = {"a": 1, "b": {"c": 2}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that the __iter__ method returns an iterator over the flattened keys
+    expected_key_order = ["a", "b.c"]
+    actual_key_order = []
+    for key in iter(flat_dict):
+        actual_key_order.append(key)
+
+    assert expected_key_order == actual_key_order
+
+
+@pytest.mark.order("first")
+@pytest.mark.dependency
+def test_flatdict_dunder_len():
+    data = {"a": 1, "b": {"c": 2}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that the __len__ method returns the correct number of flattened keys
+    assert len(flat_dict) == 2
+
+
+def test_flatdict_dunder_repr():
+    data = {"a": 1, "b": {"c": 2}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that the __repr__ method returns a string representation of the FlatDict
+    expected_repr = f"<FlatDict id={id(flat_dict)} data={{'a': 1, 'b.c': 2}}>"
+    assert expected_repr == repr(flat_dict)
+
+
+@pytest.mark.order("second")
+@pytest.mark.dependency
+def test_flatdict_dunder_setitem(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(
+            request,
+            [
+                test_flatdict_dunder_equality.__name__,
+                test_flatdict_dunder_getitem.__name__,
+            ],
+            scope="module",
+        )
+
+    # requires __getitem__ to test nested assignment
+    flat_dict = FlatDict(delimiter=".")
+
+    # Test that the __setitem__ method correctly sets values for new keys
+    flat_dict["a"] = 1
+    assert flat_dict["a"] == 1
+
+    flat_dict["b.c"] = 2
+    assert flat_dict["b.c"] == 2
+
+    # Test that the __setitem__ method correctly updates values for existing keys
+    flat_dict["a"] = 3
+    assert flat_dict["a"] == 3
+
+    flat_dict["b.c"] = 4
+    assert flat_dict["b.c"] == 4
+
+    # Test that the __setitem__ method handles assignment over existing non-dict keys
+    flat_dict["b"] = 5
+    assert flat_dict["b"] == 5
+
+    # Test that the __setitem__ method handles dict assignment over existing non-dict keys
+    flat_dict["b"] = {"d": 6}
+    assert flat_dict["b.d"] == 6
+
+
+def test_flatdict_dunder_str():
+    data = {"a": 1, "b": {"c": 2}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that the __str__ method returns a string representation of the FlatDict
+    expected_str = "{'a': 1, 'b.c': 2}"
+    assert expected_str == str(flat_dict)
+
+
+def test_flatdict_pickle(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(
+            request,
+            [
+                test_flatdict_dunder_equality.__name__,
+                test_flatdict_dunder_getitem.__name__,
+            ],
+            scope="module",
+        )
+
+    import pickle
+
+    data = {"a": 1, "b": {"c": [2, 3]}}
+    flat_dict = FlatDict(data, delimiter=".")
+
+    # Test that a FlatDict instance can be pickled and unpickled correctly
+    pickled = pickle.dumps(flat_dict)
+    unpickled = pickle.loads(pickled)
+
+    # Evaluate (Expected -> Actual)
+    assert flat_dict == unpickled
+    assert flat_dict is not unpickled
+    assert flat_dict["b"] == unpickled["b"]
+    assert flat_dict["b"] is not unpickled["b"]
+    assert flat_dict["b"]["c"] == unpickled["b"]["c"]
+    assert flat_dict["b"]["c"] is not unpickled["b"]["c"]
