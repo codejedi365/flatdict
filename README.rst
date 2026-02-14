@@ -1,82 +1,36 @@
+========
 FlatDict
 ========
 
-|Version| |Status| |Coverage| |License|
+|PyPI Version| |Last Release| |Monthly Downloads| |License| |Issues|
 
-``FlatDict`` and ``FlatterDict`` are a dict classes that allows for single level,
-delimited key/value pair mapping of nested dictionaries. You can interact with
-``FlatDict`` and ``FlatterDict`` like a normal dictionary and access child
-dictionaries as you normally would or with the composite key.
+FlatDict is a Python library for interacting with nested dictionaries and
+lists as a single-level dictionary with delimited keys.
 
-*For example:*
+This library provides the :py:class:`~cj365.flatdict.FlatDict` class for
+flattening nested dictionaries, and the :py:class:`~cj365.flatdict.FlatterDict`
+class for flattening nested dictionaries and sequences (lists and tuples).
 
-.. code-block:: python
+The official documentation can be found at `codejedi365.github.io/flatdict`_.
 
-    value = flatdict2.FlatDict({'foo': {'bar': 'baz', 'qux': 'corge'}})
+.. _codejedi365.github.io/flatdict: https://codejedi365.github.io/flatdict
 
-*would be the same as:*
+.. |PyPI Version| image:: https://img.shields.io/pypi/v/cj365-flatdict?label=PyPI&logo=pypi
+   :target: https://pypi.org/project/cj365-flatdict/
+   :alt: pypi
 
-.. code-block:: python
+.. |Last Release| image:: https://img.shields.io/github/release-date/codejedi365/flatdict?display_date=published_at
+   :target: https://github.com/codejedi365/flatdict/releases/latest
+   :alt: GitHub Release Date
 
-    value == {'foo:bar': 'baz', 'foo:qux': 'corge'}
+.. |Monthly Downloads| image:: https://img.shields.io/pypi/dm/cj365-flatdict
+   :target: https://pypistats.org/packages/cj365-flatdict
+   :alt: PyPI - Downloads
 
-*values can be accessed as:*
+.. |License| image:: https://img.shields.io/pypi/l/cj365-flatdict?color=blue
+   :target: https://github.com/codejedi365/flatdict/blob/main/LICENSE
+   :alt: PyPI - License
 
-.. code-block:: python
-
-    print(foo['foo:bar'])
-
-    # or
-
-    print(foo['foo']['bar'])
-
-Additionally, lists and tuples are also converted into dicts using ``enumerate()``,
-using the ``FlatterDict`` class.
-
-*For example:*
-
-.. code-block:: python
-
-    value = flatdict2.FlatterDict({'list': ['a', 'b', 'c']})
-
-*will be the same as:*
-
-.. code-block:: python
-
-    value == {'list:0': 'a', 'list:1': 'b', 'list:2': 'c'}
-
-API
----
-
-Documentation is available at https://flatdict.readthedocs.io
-
-Versioning
-----------
-This package attempts to use semantic versioning. API changes are indicated
-by the major version, non-breaking improvements by the minor, and bug fixes
-in the revision.
-
-It is recommended that you pin your targets to greater or equal to the current
-version and less than the next major version.
-
-Installation
-------------
-
-.. code-block:: bash
-
-    $ pip install flatdict2
-
-Note that as of 4.0, setuptools 39.2 or higher is required for installation.
-
-.. |Version| image:: https://img.shields.io/pypi/v/flatdict2.svg?
-   :target: https://pypi.python.org/pypi/flatdict2
-
-.. |Status| image:: https://github.com/dennishenry/flatdict2/workflows/Testing/badge.svg
-   :target: https://github.com/dennishenry/flatdict2/actions
-   :alt: Build Status
-
-.. |Coverage| image:: https://img.shields.io/codecov/c/github/dennishenry/flatdict2.svg?
-   :target: https://codecov.io/github/dennishenry/flatdict2?branch=main
-
-.. |License| image:: https://img.shields.io/pypi/l/flatdict2.svg?
-   :target: https://flatdict.readthedocs.org
+.. |Issues| image:: https://img.shields.io/github/issues/codejedi365/flatdict
+   :target: https://github.com/codejedi365/flatdict/issues
+   :alt: GitHub Issues
