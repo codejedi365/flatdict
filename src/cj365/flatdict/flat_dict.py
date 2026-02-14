@@ -28,6 +28,7 @@ if TYPE_CHECKING:  # pragma: no cover
         Iterable,
         ItemsView,
         KeysView,
+        NamedTuple,
         TypedDict,
         ValuesView,
     )
@@ -44,6 +45,7 @@ class FlatDict(MutableMapping[str, Any]):
     A dictionary object that allows for single level, delimited key/value pair
     mapping of nested dictionaries.
     """
+
     _delimiter: str
     _flat_dict: dict[str, Any]
     _inflated_dict: dict[Any, Any] | None
@@ -51,14 +53,14 @@ class FlatDict(MutableMapping[str, Any]):
 
     def __init__(
         self,
-        value: dict[Any, Any] | FlatDict | None = None,
+        value: dict[Any, Any] | NamedTuple | FlatDict | None = None,
         delimiter: str = ".",
     ):
         """
         Initialize a new FlatDict instance.
 
         :param value: The initial data to populate the FlatDict with. Can be a
-                      nested dictionary, another FlatDict, or None.
+                      nested dictionary, a NamedTuple, another FlatDict, or None.
 
         :param delimiter: The delimiter to use for the keys in the flat dictionary.
 
@@ -82,6 +84,13 @@ class FlatDict(MutableMapping[str, Any]):
 
         if isinstance(value, FlatDict):
             data = value.inflate()
+
+        elif (
+            isinstance(value, tuple)
+            and hasattr(value, "_fields")
+            and hasattr(value, "_asdict")
+        ):
+            data = value._asdict()
 
         elif value is not None:
             data = cast("dict[Any, Any]", value)
