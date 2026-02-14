@@ -1,0 +1,87 @@
+name: Feature Request
+description: Suggest an enhancement for this product
+title: "[feat] "
+labels:
+  - enhancement
+  - triage
+assignees:
+  - codejedi365
+type: feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the cj365-flatdict package repository.
+
+        * Before you create a new feature request, please check the [FAQ](https://codejedi365.github.io/flatdict/misc/faq.html)
+          to see if your question is already answered.
+
+        * Check to make sure someone else hasn't already opened a similar [feature request](https://github.com/codejedi365/flatdict/issues)
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: |
+        By submitting this issue, you agree to follow the [Code of Conduct](https://codejedi365.github.io/flatdict/misc/code_of_conduct.html)
+        and understand the expectations for behavior in this community.
+      options:
+        - label: I have read and agree to the [Code of Conduct](https://codejedi365.github.io/flatdict/misc/code_of_conduct.html)
+    validations:
+      required: true
+
+  - id: description
+    type: textarea
+    attributes:
+      label: High-level Description
+      description: |
+        1. Please provide a high-level description of what you would like to see in one sentence (a TL;DR).
+        2. Then, follow up with a more detailed explanation of the feature/workflow you are proposing.
+        3. Please do not focus on the specifics of the code, or define the solution here,
+           but describe why this feature is important or how it would improve the product. You will
+           be able to provide your recommended solution at the end of the form.
+    validations:
+      required: true
+      # minLength: 50
+      # maxLength: 1000
+
+  - id: use-cases
+    type: textarea
+    attributes:
+      label: Use Cases
+      description: |
+        - Please provide specific use cases or scenarios where this feature would be beneficial.
+        - This could include examples of workflows, user stories, or any other context that
+          helps illustrate the need for this feature.
+    validations:
+      required: true
+      # minLength: 10
+
+  - id: implementation-possible
+    type: textarea
+    attributes:
+      label: Possible Implementation
+      description: |
+        - If you have ideas on how this feature could be implemented, please share them here.
+        - This could include technical details, design considerations, or any other relevant
+          information that could help guide the development of this feature.
+    validations:
+      required: true
+      # minLength: 10
+
+  - id: implementation-alternatives
+    type: textarea
+    attributes:
+      label: Alternative Solutions
+      description: |
+        - Please describe any alternative solutions or workarounds you have considered.
+        - This could include existing features, third-party tools, or any other methods
+          that could achieve similar outcomes.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to improve the **cj365-flatdict**! We will work to respond within
+        the next few business days.
