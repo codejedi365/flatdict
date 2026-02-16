@@ -249,7 +249,7 @@ jobs:
             --cov=${{ steps.install.outputs.PKG_INSTALLED_DIR }}   \
             --cov-context=test                                     \
             --cov-report=term-missing                              \
-            --cov-fail-under=90                                    \
+            --cov-fail-under=95                                    \
             --junit-xml=tests/reports/pytest-results.xml
 
       - name: Report | Upload Test Results
