@@ -138,7 +138,10 @@ function verify_python() {
     local python3_exe=""
     python3_exe="$(which python3)"
 
-    if ! [ -f "$(dirname "$python3_exe")/../pyvenv.cfg" ]; then
+    if [ "${CI:-false}" = "true" ]; then
+        info "Running in CI environment, skipping Python virtual environment verification."
+
+    elif ! [ -f "$(dirname "$python3_exe")/../pyvenv.cfg" ]; then
         error "No virtual environment detected."
         return 1
     fi
