@@ -45,4 +45,7 @@ if __name__ == "__main__":
         envsubst(filepath=doc_file, version=new_version, release_tag=new_release_tag)
 
     for src_file in SRC_DIR.rglob("*"):
-        envsubst(filepath=src_file, version=new_version, release_tag=new_release_tag)
+        if src_file.is_file() and src_file.suffix not in {".pyc", ".pyo"}:
+            envsubst(
+                filepath=src_file, version=new_version, release_tag=new_release_tag
+            )
