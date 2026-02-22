@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
 
     concurrency:
-      group: ${{ github.workflow }}-pages-${{ github.ref_name }}
+      group: github-pages
       cancel-in-progress: false
 
     permissions:

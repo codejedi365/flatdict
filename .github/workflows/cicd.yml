@@ -207,7 +207,7 @@ jobs:
     if: ${{ needs.release.outputs.released == 'true' && github.repository == 'codejedi365/flatdict' }}
 
     concurrency:
-      group: ${{ github.workflow }}-pages-${{ github.ref_name }}
+      group: github-pages
       cancel-in-progress: false
 
     needs:
