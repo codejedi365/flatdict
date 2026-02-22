@@ -50,7 +50,7 @@ function main() {
         return 1
     fi
 
-    rm -rf docs/_build/html docs/source/api/modules "$DIST_DOCS_DIR"
+    rm -rf docs/_build/html "$DIST_DOCS_DIR"
 
     explicit_run_cmd_w_status_wrapper \
         "Building documentation" \
