@@ -702,6 +702,65 @@ def test_flatterdict_update_empty(request: pytest.FixtureRequest):
     assert data_list[1] == flat_dict["1"]
 
 
+def test_flatterdict_update_from_flatterdict(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatterdict_dunder_getitem.__name__], scope="module")
+
+    base_data: dict[str, Any] = {"a": 1, "b": {"c": [2, 3], "d": 4}}
+    base_flat_dict = FlatterDict(base_data, delimiter=".")
+
+    # Test merging a FlatterDict with overlapping and new keys into another FlatterDict
+    update_data: dict[str, Any] = {"b": {"d": 99, "e": 5}, "f": 6}
+    update_flat_dict = FlatterDict(update_data, delimiter=".")
+    base_flat_dict.update(update_flat_dict)
+
+    # Original key unchanged
+    assert base_data["a"] == base_flat_dict["a"]
+    # Nested sequence key preserved from base where not overwritten
+    assert base_data["b"]["c"][0] == base_flat_dict["b.c.0"]
+    assert base_data["b"]["c"][1] == base_flat_dict["b.c.1"]
+    # Overlapping nested key overwritten by update
+    assert update_data["b"]["d"] == base_flat_dict["b.d"]
+    # New nested key added from update
+    assert update_data["b"]["e"] == base_flat_dict["b.e"]
+    # New top-level key added from update
+    assert update_data["f"] == base_flat_dict["f"]
+
+    # Test that updating with an empty FlatterDict does not change the content
+    before_keys = set(base_flat_dict.keys())
+    base_flat_dict.update(FlatterDict())
+    assert before_keys == set(base_flat_dict.keys())
+
+
+def test_flatterdict_update_from_flatdict(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatterdict_dunder_getitem.__name__], scope="module")
+
+    base_data: dict[str, Any] = {"a": 1, "b": {"c": 2, "d": 3}}
+    base_flat_dict = FlatterDict(base_data, delimiter=".")
+
+    # Test merging a FlatDict with overlapping and new keys into a FlatterDict
+    update_data: dict[str, Any] = {"b": {"d": 99, "e": 4}, "f": 5}
+    update_flat_dict = FlatDict(update_data, delimiter=".")
+    base_flat_dict.update(update_flat_dict)
+
+    # Original key unchanged
+    assert base_data["a"] == base_flat_dict["a"]
+    # Nested key preserved from base where not overwritten
+    assert base_data["b"]["c"] == base_flat_dict["b.c"]
+    # Overlapping nested key overwritten by update
+    assert update_data["b"]["d"] == base_flat_dict["b.d"]
+    # New nested key added from update
+    assert update_data["b"]["e"] == base_flat_dict["b.e"]
+    # New top-level key added from update
+    assert update_data["f"] == base_flat_dict["f"]
+
+    # Test that updating with an empty FlatDict does not change the content
+    before_keys = set(base_flat_dict.keys())
+    base_flat_dict.update(FlatDict())
+    assert before_keys == set(base_flat_dict.keys())
+
+
 @pytest.mark.order("third")
 @pytest.mark.dependency
 def test_flatterdict_values(request: pytest.FixtureRequest):
