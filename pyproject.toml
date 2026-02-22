@@ -29,6 +29,7 @@ authors = [
 maintainers = [{ name = "codejedi365", email = "codejedi365+flatdictpy@gmail.com" }]
 dependencies = [
     "Deprecated ~= 1.3",
+    "typing_extensions >= 4.13, < 5.0",
 ]
 
 
