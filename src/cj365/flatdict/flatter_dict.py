@@ -21,6 +21,7 @@ from typing import (
     MutableMapping,  # deprecate in favor of collections.abc.MutableMapping in Python 3.9+
 )
 from typing import TYPE_CHECKING, cast, overload, Any, Sequence
+from typing_extensions import deprecated as typing_deprecated
 from deprecated.sphinx import deprecated
 
 from cj365.flatdict.flat_dict import FlatDict
@@ -145,8 +146,17 @@ class FlatterDict(MutableMapping[str, Any]):
     @deprecated(
         reason="Use the 'inflate' method instead, 'as_dict()' will be removed in a future version",
         version="5.0.0",
+        action="once",
+    )
+    @typing_deprecated(
+        "The 'as_dict()' method is deprecated, use 'inflate()' instead", category=None
     )
     def as_dict(self) -> Sequence[Any] | set[Any] | dict[Any, Any]:
+        """
+        [Deprecated] Return the nested data type representation of the FlatterDict.
+
+        :returns: A nested data type
+        """
         return self.inflate()
 
     def clear(self):
