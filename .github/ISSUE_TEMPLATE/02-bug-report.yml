@@ -6,7 +6,7 @@ labels:
   - triage
 assignees:
   - codejedi365
-type: bug
+# type: bug
 body:
   - type: markdown
     attributes:

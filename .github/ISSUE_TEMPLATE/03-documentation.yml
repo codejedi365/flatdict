@@ -6,7 +6,7 @@ labels:
   - triage
 assignees:
   - codejedi365
-type: task
+# type: task
 body:
   - type: markdown
     attributes:
