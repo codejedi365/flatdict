@@ -4,6 +4,37 @@
 CHANGELOG
 =========
 
+.. _changelog-v5.0.1:
+
+v5.0.1 (2026-02-22)
+===================
+
+🪲 Bug Fixes
+------------
+
+* **FlatDict**: Enable ``update()`` from another FlatDict object (`PR#2`_, `ac6d9fe`_)
+
+* **FlatterDict**: Enable ``update()`` from another FlatterDict or FlatDict object (`PR#3`_,
+  `936cfbd`_)
+
+📖 Documentation
+----------------
+
+* **api**: Adjust table-of-contents layout for classes (`de313fb`_)
+
+⚙️ Build System
+----------------
+
+* **deps**: Specify ``typing_extensions`` package in range from ``v4.13`` to ``< v5.0`` (`44ae99e`_)
+
+.. _44ae99e: https://github.com/codejedi365/flatdict/commit/44ae99ebd2613cef64914b47af10acb68d464c70
+.. _936cfbd: https://github.com/codejedi365/flatdict/commit/936cfbd5cd6c4618fdbc96069a870dec56ededc9
+.. _ac6d9fe: https://github.com/codejedi365/flatdict/commit/ac6d9fef01a0b1a4b0f0422f81aa0d6935d78ab8
+.. _de313fb: https://github.com/codejedi365/flatdict/commit/de313fbd70c364595b5eb50510c88abe57989b36
+.. _PR#2: https://github.com/codejedi365/flatdict/pull/2
+.. _PR#3: https://github.com/codejedi365/flatdict/pull/3
+
+
 .. _changelog-v5.0.0:
 
 v5.0.0 (2026-02-22)
