@@ -137,17 +137,17 @@ jobs:
           printf '%s\n' "dist_dir=dist/*" >> $GITHUB_OUTPUT
           printf '%s\n' "artifacts_name=dist" >> $GITHUB_OUTPUT
 
-      - name: Build | Build documentation
-        id: build-docs
-        run: bash ./scripts/build_docs.sh
-
       - name: Upload | Distribution Artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: ${{ steps.build.outputs.artifacts_name }}
           path: ${{ steps.build.outputs.dist_dir }}
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 1
+
+      - name: Build | Build documentation
+        id: build-docs
+        run: bash ./scripts/build_docs.sh
 
       - name: Upload | Documentation
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b  # v4.0.0
