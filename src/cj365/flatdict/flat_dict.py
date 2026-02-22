@@ -272,7 +272,10 @@ class FlatDict(MutableMapping[str, Any]):
         """
         params = {**kwargs}
         if arg is not None:
-            if hasattr(arg, "keys") and hasattr(arg, "__getitem__"):
+            if isinstance(arg, self.__class__):
+                params.update(arg.inflate())
+
+            elif hasattr(arg, "keys") and hasattr(arg, "__getitem__"):
                 params.update(
                     {
                         k: arg[k]
@@ -281,6 +284,9 @@ class FlatDict(MutableMapping[str, Any]):
                 )
             else:
                 params.update({k: v for k, v in arg})
+
+        if not params:
+            return
 
         flattened_params = self.flatten(params, self.delimiter)
 

@@ -371,6 +371,45 @@ def test_flatdict_update_empty(request: pytest.FixtureRequest):
     assert flat_dict["b.c"] == [2]
 
 
+def test_flatdict_update_from_flatdict(request: pytest.FixtureRequest):
+    if not str(request.config.getoption("-k")):
+        depends(request, [test_flatdict_dunder_getitem.__name__], scope="module")
+
+    base_data: dict[str, Any] = {"a": 1, "b": {"c": 2, "d": 3}}
+    base_flat_dict = FlatDict(base_data, delimiter=".")
+
+    # Test merging a FlatDict with overlapping and new keys into another FlatDict
+    update_data: dict[str, Any] = {"b": {"d": 99, "e": 4}, "f": 5}
+    update_flat_dict = FlatDict(update_data, delimiter=".")
+    base_flat_dict.update(update_flat_dict)
+
+    # Original key unchanged
+    assert base_data["a"] == base_flat_dict["a"]
+    # Nested key preserved from base where not overwritten
+    assert base_data["b"]["c"] == base_flat_dict["b.c"]
+    # Overlapping nested key overwritten by update
+    assert update_data["b"]["d"] == base_flat_dict["b.d"]
+    # New nested key added from update
+    assert update_data["b"]["e"] == base_flat_dict["b.e"]
+    # New top-level key added from update
+    assert update_data["f"] == base_flat_dict["f"]
+
+    # Test overwriting a top-level key with a FlatDict using a different delimiter
+    base_flat_dict2 = FlatDict({"x": 10, "y": {"z": 20}}, delimiter=".")
+    update_flat_dict2 = FlatDict({"y": {"z": 99, "w": 30}}, delimiter=".")
+    base_flat_dict2.update(update_flat_dict2)
+
+    assert 10 == base_flat_dict2["x"]
+    assert 99 == base_flat_dict2["y.z"]
+    assert 30 == base_flat_dict2["y.w"]
+
+    # Test that updating with an empty FlatDict does not change the content
+    base_flat_dict3 = FlatDict({"a": 1, "b": {"c": 2}}, delimiter=".")
+    base_flat_dict3.update(FlatDict())
+    assert 1 == base_flat_dict3["a"]
+    assert {"c": 2} == base_flat_dict3["b"]
+
+
 @pytest.mark.order("third")
 @pytest.mark.dependency
 def test_flatdict_values(request: pytest.FixtureRequest):
