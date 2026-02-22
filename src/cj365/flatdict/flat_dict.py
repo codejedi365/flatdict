@@ -20,6 +20,7 @@ from typing import (
     MutableMapping,  # deprecate in favor of collections.abc.MutableMapping in Python 3.9+
 )
 from typing import TYPE_CHECKING, cast, overload, Any
+from typing_extensions import deprecated as typing_deprecated
 from deprecated.sphinx import deprecated
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -117,10 +118,19 @@ class FlatDict(MutableMapping[str, Any]):
         return self._meta_keys
 
     @deprecated(
-        reason="Use the 'inflate' method instead, will be removed in a future version",
+        reason="Use the 'inflate' method instead, 'as_dict()' will be removed in a future version",
         version="5.0.0",
+        action="once",
+    )
+    @typing_deprecated(
+        "The 'as_dict()' method is deprecated, use 'inflate()' instead", category=None
     )
     def as_dict(self) -> dict[Any, Any]:
+        """
+        [Deprecated] Return the nested dictionary representation of the FlatDict.
+
+        :returns: A nested dictionary
+        """
         return self.inflate()
 
     def clear(self):
