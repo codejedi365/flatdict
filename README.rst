@@ -7,9 +7,9 @@ FlatDict
 FlatDict is a Python library for interacting with nested dictionaries and
 lists as a single-level dictionary with delimited keys.
 
-This library provides the :py:class:`~cj365.flatdict.FlatDict` class for
-flattening nested dictionaries, and the :py:class:`~cj365.flatdict.FlatterDict`
-class for flattening nested dictionaries and sequences (lists and tuples).
+This library provides the ``FlatDict`` class for flattening nested dictionaries,
+and the ``FlatterDict`` class for flattening nested dictionaries and sequences
+(lists and tuples).
 
 The official documentation can be found at `codejedi365.github.io/flatdict`_.
 
