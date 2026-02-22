@@ -1,6 +1,6 @@
 [project]
 name = "cj365-flatdict"
-version = "4.0.4"
+version = "5.0.0"
 description = "Python module for interacting with nested dicts as a single level dict with delimited keys."
 requires-python = "~= 3.8"
 classifiers = [

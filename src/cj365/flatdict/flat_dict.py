@@ -118,7 +118,7 @@ class FlatDict(MutableMapping[str, Any]):
 
     @deprecated(
         reason="Use the 'inflate' method instead, will be removed in a future version",
-        version="$NEW_VERSION",
+        version="5.0.0",
     )
     def as_dict(self) -> dict[Any, Any]:
         return self.inflate()

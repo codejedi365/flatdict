@@ -144,7 +144,7 @@ class FlatterDict(MutableMapping[str, Any]):
 
     @deprecated(
         reason="Use the 'inflate' method instead, 'as_dict()' will be removed in a future version",
-        version="$NEW_VERSION",
+        version="5.0.0",
     )
     def as_dict(self) -> Sequence[Any] | set[Any] | dict[Any, Any]:
         return self.inflate()

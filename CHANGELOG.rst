@@ -4,6 +4,61 @@
 CHANGELOG
 =========
 
+.. _changelog-v5.0.0:
+
+v5.0.0 (2026-02-22)
+===================
+
+✨ Features
+-----------
+
+* **FlatDict**: Add constructor flexibility for passing a NamedTuple (`2512a57`_)
+
+* **typing**: Add typing flag to package (`8556507`_)
+
+⚡ Performance Improvements
+---------------------------
+
+* **FlatDict**: Optimize ``FlatDict`` implementation (`5ba90d0`_)
+
+* **FlatterDict**: Optimize ``FlatterDict`` implementation (`a63449c`_)
+
+📖 Documentation
+----------------
+
+* Refactor & enhance documentation (`3f58958`_)
+
+♻️ Refactoring
+---------------
+
+* **FlatDict**: Change default delimiter to a period (`8f29aaf`_)
+
+* **FlatterDict**: Change default delimiter to a period (`bdc84da`_)
+
+💥 Breaking Changes
+-------------------
+
+* **FlatDict**: The default delimiter has been changed to a period (`.`) instead of a colon (`:`).
+  This is a stylistic change but it will impact users whom did not define a delimiter parameter in
+  the ``FlatDict`` constructor and expect it to be a colon. If you do not desire this change, update
+  your constructor to specify a colon as the delimiter for the ``FlatDict``. Example:
+  ``FlatDict(..., delimiter=":")``.
+
+* **FlatterDict**: The default delimiter has been changed to a period (`.`) instead of a colon
+  (`:`). This is a stylistic change but it will impact users whom did not define a delimiter
+  parameter in the ``FlatterDict`` constructor and expect it to be a colon. If you do not desire
+  this change, update your constructor to specify a colon as the delimiter for the ``FlatterDict``.
+  Example: ``FlatterDict(..., delimiter=":")``.
+
+.. _2512a57: https://github.com/codejedi365/flatdict/commit/2512a579f3b4484be270f7993a6826a259d0051c
+.. _3f58958: https://github.com/codejedi365/flatdict/commit/3f58958228f4261d0d63c738a60162e8b3dc7882
+.. _5ba90d0: https://github.com/codejedi365/flatdict/commit/5ba90d0703733d0454469ac0d4368069e5f78e6b
+.. _8556507: https://github.com/codejedi365/flatdict/commit/855650782cf91d438b9d044db7fa6d396217400c
+.. _8f29aaf: https://github.com/codejedi365/flatdict/commit/8f29aaf5980fdbfbcd4c1f6f5792dee743141a6a
+.. _a63449c: https://github.com/codejedi365/flatdict/commit/a63449c36cc07067019e8e8b2fe62ace15783b14
+.. _bdc84da: https://github.com/codejedi365/flatdict/commit/bdc84da0d6ffce8aec5308acc3293c8cd3d797d2
+
+
 .. _changelog-v4.0.4:
 
 v4.0.4 (2024-08-28)
