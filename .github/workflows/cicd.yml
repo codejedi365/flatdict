@@ -24,18 +24,31 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup | Get last release commit sha
+        id: last-release
+        run: |
+          if ! RELEASE_TAG="$(git describe --tags --match 'v*' --abbrev=0)"; then
+            printf "::notice:: No release tags found, using initial commit as base.\n";
+            RELEASE_TAG="$(git rev-list --max-parents=0 HEAD)";
+          fi
+          if ! RELEASE_COMMIT_SHA="$(git rev-list -n 1 "$RELEASE_TAG")"; then
+            printf "::error:: Error: Failed to get commit sha for '%s'.\n" "$RELEASE_TAG";
+            exit 1;
+          fi
+          echo "RELEASE_COMMIT_SHA=$RELEASE_COMMIT_SHA" | tee -a $GITHUB_OUTPUT
+
       - name: Evaluate | Check common file types for changes
         id: core-changed-files
         uses: tj-actions/changed-files@e0021407031f5be11a464abee9a0776171c79891  #v47.0.1
         with:
-          base_sha: ${{ github.event.push.before }}
+          base_sha: ${{ steps.last-release.outputs.RELEASE_COMMIT_SHA }}
           files_yaml_from_source_file: .github/changed-files-spec.yml
 
       - name: Evaluate | Check specific file types for changes
         id: ci-changed-files
         uses: tj-actions/changed-files@e0021407031f5be11a464abee9a0776171c79891  #v47.0.1
         with:
-          base_sha: ${{ github.event.push.before }}
+          base_sha: ${{ steps.last-release.outputs.RELEASE_COMMIT_SHA }}
           files_yaml: |
             ci:
               - .github/workflows/cicd.yml
