@@ -44,6 +44,4 @@ mention the rationale here.
 
 - [ ] Appropriate Unit tests added/updated
 
-- [ ] Appropriate End-to-End tests added/updated
-
 - [ ] Appropriate Documentation added/updated and syntax validated for sphinx build (see Contributor Guidelines)
